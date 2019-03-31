@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">tpd2-1c-2019-mobile</string>
     <string name="title_activity_maps">Map</string>
+    <string name="title_activity_main">UberPets</string>
+    <string name="action_settings">Settings</string>
+    <string name="conductor">Conductor</string>
+    <string name="usuario">Usuario</string>
 </resources>
