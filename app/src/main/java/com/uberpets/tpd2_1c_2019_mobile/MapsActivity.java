@@ -1,6 +1,7 @@
 package com.uberpets.tpd2_1c_2019_mobile;
 
 import android.Manifest;
+import android.app.Fragment;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.support.v4.app.ActivityCompat;
@@ -41,6 +42,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private String TAG = "placeautocomplete";
     private int locationRequestCode = 1000;
     private AutocompleteSupportFragment mAutocompleteSupportFragment;
+    private String API_KEY = "AIzaSyBEHTV0SgaBDXTfYtbflZ_gXyIQd3j2TNY";
 
 
     @Override
@@ -56,12 +58,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         autocompleteLocation();
     }
 
-
     public void autocompleteLocation(){
 
         // Initialize Places.
         if (!Places.isInitialized()) {
-            Places.initialize(getApplicationContext(),"AIzaSyBEHTV0SgaBDXTfYtbflZ_gXyIQd3j2TNY");
+            Places.initialize(getApplicationContext(),API_KEY);
         }
 
         // Initialize the AutocompleteSupportFragment
@@ -150,17 +151,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      */
     @Override
     public void onMapReady(GoogleMap googleMap) {
-        mMap = googleMap;
+        try {
+            if (googleMap != null) {
+                Log.d("INFO", "GOOGLE GOOD LOADED");
+                mMap = googleMap;
+                mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
 
-        LatLng latLng = new LatLng(currentLocation.getLatitude(),currentLocation.getLongitude());
+                LatLng latLng = new LatLng(currentLocation.getLatitude(),currentLocation.getLongitude());
 
-        //MarkerOptions are used to create a new Marker.You can specify location, title etc with MarkerOptions
-        MarkerOptions markerOptions = new MarkerOptions().position(latLng).title("Estas Acá");
+                //MarkerOptions are used to create a new Marker.You can specify location, title etc with MarkerOptions
+                MarkerOptions markerOptions = new MarkerOptions().position(latLng).title("Estas Acá");
 
-        //Adding the created the marker on the map
-        mMap.addMarker(markerOptions);
+                //Adding the created the marker on the map
+                mMap.addMarker(markerOptions);
 
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng,ZOOM_VALUE));
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng,ZOOM_VALUE));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.e("ERROR", "GOOGLE MAPS NOT LOADED");
+        }
     }
 
 }
