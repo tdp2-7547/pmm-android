@@ -2,13 +2,23 @@ package com.uberpets.tpd2_1c_2019_mobile;
 
 import android.Manifest;
 import android.app.Fragment;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.support.v7.widget.CardView;
 import android.util.Log;
+import android.view.MenuItem;
+import android.view.View;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.FusedLocationProviderClient;
 
@@ -19,6 +29,8 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.libraries.places.api.Places;
@@ -39,10 +51,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Location currentLocation;
     private FusedLocationProviderClient mFusedLocationProviderClient;
     private static float ZOOM_VALUE = 14.0f;
-    private String TAG = "placeautocomplete";
+    private String TAG_PLACE_AUTO = "PLACE_AUTO_COMPLETED";
     private int locationRequestCode = 1000;
     private AutocompleteSupportFragment mAutocompleteSupportFragment;
     private String API_KEY = "AIzaSyBEHTV0SgaBDXTfYtbflZ_gXyIQd3j2TNY";
+    private CardView mCardView;
 
 
     @Override
@@ -54,6 +67,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         //to Google Play Services through GoogleApiClient
         mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
 
+        mCardView = findViewById(R.id.card_view);
         requestPermission();
         autocompleteLocation();
     }
@@ -64,6 +78,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (!Places.isInitialized()) {
             Places.initialize(getApplicationContext(),API_KEY);
         }
+
+        Log.d(TAG_PLACE_AUTO,"MENSAJE");
 
         // Initialize the AutocompleteSupportFragment
         mAutocompleteSupportFragment = (AutocompleteSupportFragment)
@@ -81,14 +97,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             public void onPlaceSelected(Place place) {
                 // TODO: Get info about the selected place.
                 //System.out.printf(place.getName());
-                Log.i(TAG, "Place: " + place.getName() + ", " + place.getId());
+                Log.i(TAG_PLACE_AUTO, "Place: " + place.getName() + ", " + place.getId());
             }
 
             @Override
             public void onError(Status status) {
                 // TODO: Handle the error.
                 //System.out.printf(status.toString());
-                Log.i(TAG, "An error occurred: " + status);
+                Log.i(TAG_PLACE_AUTO, "An error occurred: " + status);
 
             }
         });
@@ -106,25 +122,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    public void fetchLastLocation() {
-
-        // obtain the last location and save in task, that's Collection's Activities
-        Task<Location> task = mFusedLocationProviderClient.getLastLocation();
-        // add object OnSuccessListener, when the connection is established and the location is fetched
-        task.addOnSuccessListener(new OnSuccessListener<Location>() {
-            @Override
-            public void onSuccess(Location location) {
-                if (location != null) {
-                    currentLocation = location;
-                    // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-                    SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                            .findFragmentById(R.id.map);
-                    mapFragment.getMapAsync(MapsActivity.this);
-                }
-            }
-        });
-    }
-
     @Override
     public void onRequestPermissionsResult (int requestCode, @NonNull String [] permissions, @NonNull int [] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -136,6 +133,31 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     fetchLastLocation();
                 }
             }
+        }
+    }
+
+    public void fetchLastLocation() {
+
+        //check if user has granted location permission,
+        // its necessary to use mFusedLocationProviderClient
+        if (ActivityCompat.checkSelfPermission(MapsActivity.this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(MapsActivity.this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }else{
+            // obtain the last location and save in task, that's Collection's Activities
+            Task<Location> task = mFusedLocationProviderClient.getLastLocation();
+            // add object OnSuccessListener, when the connection is established and the location is fetched
+            task.addOnSuccessListener(new OnSuccessListener<Location>() {
+                @Override
+                public void onSuccess(Location location) {
+                    if (location != null) {
+                        currentLocation = location;
+                        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
+                        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                                .findFragmentById(R.id.map);
+                        mapFragment.getMapAsync(MapsActivity.this);
+                    }
+                }
+            });
         }
     }
 
@@ -166,11 +188,59 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 mMap.addMarker(markerOptions);
 
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng,ZOOM_VALUE));
+
+                //**********mientras tanto
+                mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+
+                    @Override
+                    public void onMapClick(LatLng newLatLon) {
+                        mMap.addMarker(new MarkerOptions().position(newLatLon).title("Marker"));
+                        getRouteTravel(newLatLon);
+                    }
+                });
+                //************************
+
+
             }
         } catch (Exception e) {
             e.printStackTrace();
             Log.e("ERROR", "GOOGLE MAPS NOT LOADED");
         }
+    }
+
+
+    public void getRouteTravel(LatLng destiny) {
+        mCardView.setVisibility(View.INVISIBLE);
+        LatLng origin = new LatLng(currentLocation.getLatitude(),currentLocation.getLongitude());
+        Polyline polyline1 = mMap.addPolyline(new PolylineOptions()
+                .clickable(false)
+                .add(origin, destiny));
+        //mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(-23.684, 133.903), 4));
+    }
+
+
+    public void getDriver(LatLng destiny) {
+        //logic to send to server
+        //hard
+        String url = "http://localhost:3000";
+        RequestQueue queue = Volley.newRequestQueue(this);
+
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, url,
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        Log.d("GET DRIVER", "estamos buscando el bondi");
+
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.e("GET DRIVER","no hay sistema usa cabify");
+
+            }
+        });
+
+        queue.add(stringRequest);
     }
 
 }
