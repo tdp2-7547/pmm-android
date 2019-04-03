@@ -12,7 +12,9 @@ import android.support.v7.widget.CardView;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.LinearLayout;
 
+import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -42,6 +44,8 @@ import com.google.android.libraries.places.widget.listener.PlaceSelectionListene
 
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import afu.org.checkerframework.checker.nullness.qual.NonNull;
 
@@ -49,6 +53,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private GoogleMap mMap;
     private Location currentLocation;
+    private LatLng mDestiny;
     private FusedLocationProviderClient mFusedLocationProviderClient;
     private static float ZOOM_VALUE = 14.0f;
     private String TAG_PLACE_AUTO = "PLACE_AUTO_COMPLETED";
@@ -56,6 +61,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private AutocompleteSupportFragment mAutocompleteSupportFragment;
     private String API_KEY = "AIzaSyBEHTV0SgaBDXTfYtbflZ_gXyIQd3j2TNY";
     private CardView mCardView;
+    private LinearLayout mInfoDriver;
 
 
     @Override
@@ -68,6 +74,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
 
         mCardView = findViewById(R.id.card_view);
+        mInfoDriver = findViewById(R.id.linear_info_driver_layout);
+        mInfoDriver.setVisibility(LinearLayout.INVISIBLE);
         requestPermission();
         autocompleteLocation();
     }
@@ -195,7 +203,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     @Override
                     public void onMapClick(LatLng newLatLon) {
                         mMap.addMarker(new MarkerOptions().position(newLatLon).title("Marker"));
-                        getRouteTravel(newLatLon);
+                        mDestiny = newLatLon;
+                        getRouteTravel();
                     }
                 });
                 //************************
@@ -209,37 +218,49 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
-    public void getRouteTravel(LatLng destiny) {
+    public void getRouteTravel() {
+        showInfoTravel();
         mCardView.setVisibility(View.INVISIBLE);
         LatLng origin = new LatLng(currentLocation.getLatitude(),currentLocation.getLongitude());
         Polyline polyline1 = mMap.addPolyline(new PolylineOptions()
                 .clickable(false)
-                .add(origin, destiny));
+                .add(origin, mDestiny));
         //mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(-23.684, 133.903), 4));
     }
 
+    public void showInfoTravel() {
+        mInfoDriver.setVisibility(LinearLayout.VISIBLE);
+    }
 
-    public void getDriver(LatLng destiny) {
+
+    public void getDriver(View view) {
         //logic to send to server
         //hard
-        String url = "http://localhost:3000";
         RequestQueue queue = Volley.newRequestQueue(this);
+        String url = "http://young-wave-26125.herokuapp.com/travels";
 
-        StringRequest stringRequest = new StringRequest(Request.Method.POST, url,
+        StringRequest stringRequest = new StringRequest(Request.Method.POST,url,
                 new Response.Listener<String>() {
-                    @Override
-                    public void onResponse(String response) {
-                        Log.d("GET DRIVER", "estamos buscando el bondi");
-
-                    }
-                }, new Response.ErrorListener() {
+            @Override
+            public void onResponse(String response) {
+                Log.i("GETDRIVER", response);
+            }
+        }, new Response.ErrorListener() {
             @Override
             public void onErrorResponse(VolleyError error) {
-                Log.e("GET DRIVER","no hay sistema usa cabify");
-
+                Log.i("GETDRIVER", error.toString());
             }
-        });
+        }){
+            @Override
+            protected Map<String,String> getParams(){
+                Map<String,String> params = new HashMap<>();
+                params.put("longitude",String.valueOf(mDestiny.longitude));
+                params.put("latitude",String.valueOf(mDestiny.latitude));
+                return params;
+            }
+        };
 
+        // Add the request to the RequestQueue
         queue.add(stringRequest);
     }
 
